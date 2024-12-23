@@ -3,7 +3,7 @@ from tkinter import ttk
 from tkinter import messagebox
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
-import csv
+import csv, os, threading
 
 class RestaurantManagementSystem(tk.Tk):
     def __init__(self):
@@ -43,9 +43,6 @@ class RestaurantManagementSystem(tk.Tk):
         # 创建按钮
         self.management_button = ttk.Button(main_frame, text="管理模式", command=self.management_mode)
 
-        # 修改按钮背景颜色
-        self.management_button.configure(style="TButton")
-
         # 将按钮放置在中间
         self.management_button.grid(row=2, column=0, padx=50, pady=20, sticky='ew')
 
@@ -53,7 +50,6 @@ class RestaurantManagementSystem(tk.Tk):
         self.characters = ['马瀚鹏', '李韦成', '宋宇阳', '裴科斌']  # 要显示的字符
         self.current_index = 0  # 当前显示字符的索引
         self.update_character()
-
 
     def update_character(self):
         # 显示字符，并自动滚动
@@ -106,7 +102,14 @@ class RestaurantManagementSystem(tk.Tk):
                             # 登录成功后的操作
                             messagebox.showinfo("登录成功", "您已经成功登录")  # 弹出提示窗口
                             login_window.destroy()  # 关闭登录窗口
-
+                        
+                            # 使用多线程启动服务端程序
+                            def start_server():
+                                os.system("python ShowCustomerStatus.pyw")
+                        
+                            server_thread = threading.Thread(target=start_server)
+                            server_thread.start()
+                        
                             self.show_function_selection()  # 弹出功能选择窗口
                             return
 
@@ -145,13 +148,17 @@ class RestaurantManagementSystem(tk.Tk):
         self.function_window = tk.Toplevel(self)
         self.function_window.title("功能选择")
 
-        # 窗口居中设置
-        window_width = 400
-        window_height = 300
-        screen_width = self.function_window.winfo_screenwidth()
-        screen_height = self.function_window.winfo_screenheight()
+        # 窗口大小
+        window_width = 300
+        window_height = 200
+
+        # 获取屏幕宽度的一半
+        screen_width = self.function_window.winfo_screenwidth() // 2
+
+        # 计算窗口左上角的x和y坐标，使窗口在左半个屏幕水平垂直居中
         x = (screen_width - window_width) // 2
-        y = (screen_height - window_height) // 2
+        y = (self.function_window.winfo_screenheight() - window_height) // 2
+
         self.function_window.geometry(f"{window_width}x{window_height}+{x}+{y}")
 
         # 创建一个框架以居中按钮
@@ -159,19 +166,18 @@ class RestaurantManagementSystem(tk.Tk):
         button_frame.pack(expand=True)
 
         # 创建功能按钮
-        edit_menu_button = ttk.Button(button_frame, text="编辑菜单", command=self.edit_menu)
+        edit_menu_button = ttk.Button(button_frame, text="编辑菜单", command=self.edit_menu, style='TButton')
         edit_menu_button.pack(pady=10)
 
         # 新增编辑管理员信息按钮
-        edit_admin_info_button = ttk.Button(button_frame, text="编辑管理员信息", command=self.edit_admin_info)
+        edit_admin_info_button = ttk.Button(button_frame, text="编辑管理员信息", command=self.edit_admin_info, style='TButton')
         edit_admin_info_button.pack(pady=10)
 
-        income_expense_button = ttk.Button(button_frame, text="收入明细", command=self.show_profit)
+        income_expense_button = ttk.Button(button_frame, text="收入明细", command=self.show_profit, style='TButton')
         income_expense_button.pack(pady=10)
 
-        set_chef_number_button = ttk.Button(button_frame, text="设置厨师数", command=self.set_chef_number)
+        set_chef_number_button = ttk.Button(button_frame, text="设置厨师数", command=self.set_chef_number, style='TButton')
         set_chef_number_button.pack(pady=10)
-
     def edit_menu(self):
         # 关闭功能选择窗口
         self.function_window.destroy()

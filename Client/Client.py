@@ -45,9 +45,6 @@ class RestaurantManagementSystem(tk.Tk):
         # 创建按钮
         self.order_button = ttk.Button(main_frame, text="用户点餐模式", command=self.order_mode)
 
-        # 修改按钮背景颜色
-        self.order_button.configure(style="TButton")
-
         # 将按钮放置在中间
         self.order_button.grid(row=2, column=0, padx=50, pady=20, sticky='ew')
 
@@ -86,7 +83,8 @@ class RestaurantManagementSystem(tk.Tk):
         ip_label.pack(pady=5)
         
         ip_entry = ttk.Entry(input_window)
-        ip_entry.insert(0, "127.0.0.1")  # 设置默认IP地址
+        # ip_entry.insert(0, "113.54.245.16")  # 设置默认IP地址
+        ip_entry.insert(0, "192.168.0.197")  # 设置默认IP地址
         ip_entry.pack(pady=5)
     
         port_label = ttk.Label(input_window, text="端口号:")
@@ -126,10 +124,31 @@ class RestaurantManagementSystem(tk.Tk):
         try:
             self.s.connect((IP, int(PORT)))
             self.s.send(f"user:{user}".encode())  # 发送用户名
+            response = self.s.recv(1024).decode('utf-8')  # 接收服务器响应
+            if response != "OK":
+                messagebox.showerror("错误", f"服务器未确认用户名: {response}")
+                return
         except Exception as e:
             messagebox.showerror("错误", f"无法连接到服务器: {e}")
             return
+        
+        # 从服务器接收菜单信息
+        try:
+            def get_dishes_from_server():
+                self.s.send(b"menu")
+                data = self.s.recv(1024).decode('utf-8')
+                return data
 
+            def write_dishes_to_file(dishes, file_path='Dishes.csv'):
+                with open(file_path, mode='w', encoding='utf-8') as file:
+                    file.write(dishes)
+
+
+            dishes = get_dishes_from_server()
+            write_dishes_to_file(dishes)
+        except Exception as e:
+            messagebox.showerror("错误", f"无法从服务器获取菜单信息: {e}")
+            return
         # 进入用户点餐模式的逻辑实现
         order_window = tk.Toplevel(self)
         order_window.title("用户点餐")
@@ -334,7 +353,14 @@ class RestaurantManagementSystem(tk.Tk):
         order_time = f"下单时间: {self.get_current_time()}"
     
         # 预计完成时间
-        estimated_finish_time = datetime.now() + timedelta(minutes=total_cook_time)  # 计算预计完成时间
+        try:
+            self.s.send(b"time")
+            server_time = float(self.s.recv(1024).decode('utf-8'))  # 接收服务器时间
+            server_time = datetime.fromtimestamp(server_time)
+            estimated_finish_time = server_time + timedelta(minutes=total_cook_time)
+        except Exception as e:  
+            messagebox.showerror("错误", f"获取服务器时间时出错: {e}")
+        # estimated_finish_time = datetime.now() + timedelta(minutes=total_cook_time)  # 计算预计完成时间
         estimated_finish_time_str = estimated_finish_time.strftime("%Y-%m-%d %H:%M:%S")  # 格式化为字符串
     
         # 将订单信息写入Bill.txt文件
@@ -372,6 +398,7 @@ class RestaurantManagementSystem(tk.Tk):
             "total_cost": total_cost,
             "total_profit": total_profit,
             "estimated_finish_time": estimated_finish_time_str,
+            "estimated_delivery_time": estimated_delivery_time_str if dining_mode == "外送" else estimated_finish_time_str,
             "address": address if dining_mode == "外送" else None,
             "order_details": order_details
         }
